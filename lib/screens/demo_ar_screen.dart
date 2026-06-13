@@ -8,6 +8,7 @@ import '../widgets/mode_switcher.dart';
 import '../widgets/bottom_tab_bar.dart';
 import '../utils/unit_converter.dart';
 import 'level_screen.dart';
+import 'settings_screen.dart';
 
 class DemoARScreen extends StatefulWidget {
   const DemoARScreen({super.key});
@@ -373,7 +374,26 @@ class _DemoARScreenState extends State<DemoARScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildGlassIconButton(icon: Icons.menu, onTap: () {}),
+              _buildGlassIconButton(
+                icon: Icons.menu,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SettingsScreen(
+                        currentUnit: _unitSystem == UnitSystem.imperial ? 'imperial' : 'metric',
+                        onUnitChanged: (unit) {
+                          setState(() {
+                            _unitSystem = unit == 'imperial'
+                                ? UnitSystem.imperial
+                                : UnitSystem.metric;
+                          });
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
               _buildGlassIconButton(icon: Icons.camera_alt, onTap: () {}),
             ],
           ),
