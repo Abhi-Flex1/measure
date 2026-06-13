@@ -16,6 +16,7 @@ import '../widgets/crosshair_overlay.dart';
 import '../widgets/mode_switcher.dart';
 import '../widgets/bottom_tab_bar.dart';
 import '../utils/unit_converter.dart';
+import 'level_screen.dart';
 
 class ARMeasureScreen extends StatefulWidget {
   const ARMeasureScreen({super.key});
@@ -209,7 +210,14 @@ class _ARMeasureScreenState extends State<ARMeasureScreen> {
             bottom: 0,
             child: BottomTabBar(
               currentIndex: 0,
-              onTap: (index) {},
+              onTap: (index) {
+                if (index == 1) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LevelScreen()),
+                  );
+                }
+              },
             ),
           ),
         ],

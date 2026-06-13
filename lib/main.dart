@@ -41,62 +41,63 @@ class PermissionGate extends StatefulWidget {
 }
 
 class _PermissionGateState extends State<PermissionGate> {
-  bool _hasPermission = false;
   bool _isChecking = true;
 
   @override
   void initState() {
     super.initState();
-    _checkPermissions();
+    _checkAndRequestPermission();
   }
 
-  Future<void> _checkPermissions() async {
-    final status = await Permission.camera.status;
-    
-    if (status.isGranted || status.isLimited) {
-      setState(() {
-        _hasPermission = true;
-        _isChecking = false;
-      });
-    } else if (status.isDenied || status.isPermanentlyDenied) {
-      setState(() {
-        _isChecking = false;
-      });
-    }
-  }
-
-  Future<void> _requestPermission() async {
+  Future<void> _checkAndRequestPermission() async {
+    // Always request camera permission on launch
     final status = await Permission.camera.request();
     
-    setState(() {
-      _hasPermission = status.isGranted || status.isLimited;
-    });
-
-    if (!_hasPermission) {
-      if (status.isPermanentlyDenied) {
+    if (mounted) {
+      setState(() => _isChecking = false);
+      
+      if (status.isGranted || status.isLimited) {
+        _navigateToAR();
+      } else if (status.isPermanentlyDenied) {
         _showSettingsDialog();
       }
+      // If denied but not permanent, stay on this screen to retry
     }
+  }
+
+  void _navigateToAR() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const ARMeasureScreen()),
+    );
   }
 
   void _showSettingsDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Camera Permission Required'),
         content: const Text(
-          'Camera permission is required for AR measurements. '
-          'Please enable it in your device settings.',
+          'Camera access is needed for AR measurements. '
+          'Please enable it in Settings.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const DemoARScreen()),
+              );
+            },
+            child: const Text('Use Demo Mode'),
           ),
           TextButton(
-            onPressed: () {
-              openAppSettings();
-              Navigator.of(context).pop();
+            onPressed: () async {
+              await openAppSettings();
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                _checkAndRequestPermission();
+              }
             },
             child: const Text('Open Settings'),
           ),
@@ -110,19 +111,19 @@ class _PermissionGateState extends State<PermissionGate> {
     if (_isChecking) {
       return const Scaffold(
         body: Center(
-          child: CircularProgressIndicator(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Requesting camera access...'),
+            ],
+          ),
         ),
       );
     }
 
-    if (_hasPermission) {
-      return const ARMeasureScreen();
-    }
-
-    return _buildPermissionDeniedView();
-  }
-
-  Widget _buildPermissionDeniedView() {
+    // Show retry screen if permission denied
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a2e),
       body: Center(
@@ -131,73 +132,47 @@ class _PermissionGateState extends State<PermissionGate> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(20),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  size: 64,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 32),
+              const Icon(Icons.camera_alt, size: 64, color: Colors.white),
+              const SizedBox(height: 24),
               const Text(
-                'AR Measure',
+                'Camera Permission Needed',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 32,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
-                'Camera access is required to use AR measurement features.',
+                'Please grant camera access to use AR measurement.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withAlpha(180),
                   fontSize: 16,
                 ),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: 50,
                 child: ElevatedButton(
-                  onPressed: _requestPermission,
+                  onPressed: _checkAndRequestPermission,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(25),
                     ),
                   ),
-                  child: const Text(
-                    'Grant Camera Access',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: const Text('Grant Permission'),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (_) => const DemoARScreen(),
-                    ),
-                  );
-                },
+                onPressed: _navigateToAR,
                 child: Text(
-                  'Continue without AR (Demo Mode)',
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(150),
-                  ),
+                  'Continue without AR',
+                  style: TextStyle(color: Colors.white.withAlpha(150)),
                 ),
               ),
             ],
